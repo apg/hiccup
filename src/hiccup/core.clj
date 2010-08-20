@@ -3,6 +3,7 @@
   possible."
   (:use clojure.contrib.def
         clojure.contrib.java-utils)
+  (:require [clojure.zip :as zip])
   (:import java.util.Map))
 
 (def *html-mode* :xml)
@@ -276,3 +277,21 @@
   [name & fdecl]
   `(do (defn ~name ~@fdecl)
        (alter-var-root (var ~name) add-optional-attrs)))
+
+(defn hiccup-zip
+  "Returns a zipper for hiccup"
+  [root]
+  (zip/zipper 
+   ; branch?
+   (fn [x] (and (vector? x)
+                (not (empty? x))
+                (keyword? (first x))))
+   ; children
+   (fn [x] 
+     (if (map? (second x))
+       (vec (rest (rest x)))
+       (vec (rest x))))
+   ; make-node
+   (fn [node children]
+     (concat node children))
+   root))

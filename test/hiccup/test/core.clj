@@ -1,7 +1,8 @@
 (ns hiccup.test.core
   (:use clojure.test
         clojure.contrib.mock.test-adapter
-        hiccup.core))
+        hiccup.core)
+  (:require [clojure.zip :as zip]))
 
 (deftest escaped-chars
   (is (= (escape-html "\"") "&quot;"))
@@ -174,3 +175,21 @@
     (is (thrown? AssertionError (three-forms-extra 0 0)))
     (is (= "my documentation" (:doc (meta #'three-forms-extra))))
     (is (= :attr (:my (meta #'three-forms-extra))))))
+
+(deftest test-zipper
+  (testing "zipper traversal"
+    (let [tree [:html 
+                [:head 
+                 [:title "Some title"]]
+                [:body {:id "someid"}
+                 [:h1 "Some heading"]]]
+          gather (fn [root] 
+                   (loop [z (hiccup-zip root)
+                          accum '()]
+                     (if (zip/end? z)
+                       (reverse accum)
+                       (let [n (zip/node z)]
+                         (recur (zip/next z) 
+                                (cons (if (string? n) n (first n))
+                                      accum))))))]
+      (is (= (gather tree) '(:html :head :title "Some title" :body :h1 "Some heading"))))))
